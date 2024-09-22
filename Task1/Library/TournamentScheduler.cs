@@ -17,6 +17,7 @@ namespace ClassLibNamespace
         {
             public int [,] Matrix = new int[R, N];
             public int Fitness { get; set; }
+
             public int UniqueOpponentsCount(int player)
             {
                 HashSet<int> opponents = new HashSet<int>();
@@ -60,7 +61,7 @@ namespace ClassLibNamespace
                 Fitness = minOpponents * minOpponents + minLocations * minLocations;
             }
         }
-        static Schedule CreateRandomSchedule()
+        public static Schedule CreateRandomSchedule()
         {
             Schedule schedule= new Schedule();
             for (int r = 0; r < R; ++r)
@@ -135,29 +136,23 @@ namespace ClassLibNamespace
                 schedule0.CalculateFitness();
             }
         }
-        public static Schedule GeneticAlgorithm()
+        public static List<Schedule> NextGeneration(List<Schedule> population)
         {
-            List<Schedule> population = new List<Schedule>();
-            for (int i = 0; i < PopulationSize; ++i)
+            List<Schedule> newPopulation = new List<Schedule>();
+            for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
             {
-                population.Add(CreateRandomSchedule());
+                Schedule schedule1 = SelectParent(population);
+                Schedule schedule2 = SelectParent(population);
+                Schedule newSchedule = Crossover(schedule1, schedule2);
+                Mutate(newSchedule); 
+                Mutate(schedule1);
+                Mutate(schedule2);
+                newPopulation.Add(newSchedule);
+                newPopulation.Add(schedule1);
+                newPopulation.Add(schedule2);    
             }
-            for (int g = 0; g < Generations; ++g)
-            {
-                List<Schedule> newPopulation = new List<Schedule>();
-                for (int i = 0; i < PopulationSize; ++i)
-                {
-                    Schedule schedule1 = SelectParent(population);
-                    Schedule schedule2 = SelectParent(population);
-                    Schedule newSchedule = Crossover(schedule1, schedule2);
-                    Mutate(newSchedule);
-                    newPopulation.Add(newSchedule);
-                }
-                population = newPopulation;
-                Schedule bestSchedule = population.OrderByDescending(s => s.Fitness).First();
-                //Console.WriteLine($"Generation {g + 1}: Best Fitness = {bestSchedule.Fitness}");
-            }
-            return population.OrderByDescending(s => s.Fitness).First();
+            newPopulation = newPopulation.OrderByDescending(s => s.Fitness).Take(PopulationSize).ToList();
+            return newPopulation;
         }
     }
 }
