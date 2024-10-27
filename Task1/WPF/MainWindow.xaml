@@ -1,0 +1,29 @@
+﻿<Window x:Class="WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPF"
+        mc:Ignorable="d"
+        Title="Tournament schedule" Height="450" Width="800">
+        <Grid>
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="Enter Parameters" FontWeight="Bold" />
+                <TextBlock Text="Rounds (R):" />
+                <TextBox Name="RoundsInput" Width="100" />
+                <TextBlock Text="Participants (P):" />
+                <TextBox Name="ParticipantsInput" Width="100" />
+                <TextBlock Text="Locations (L):" />
+                <TextBox Name="LocationsInput" Width="100" />
+
+                <Button Name="StartButton" Content="Start Algorithm" Click="StartButton_Click" Margin="0,10,0,0" />
+                <Button Name="StopButton" Content="Stop Algorithm" Click="StopButton_Click" IsEnabled="False" />
+
+                <TextBlock Text="Algorithm Status" FontWeight="Bold" Margin="0,10,0,0" />
+                <TextBlock Text="Current Fitness:" />
+                <TextBlock Name="CurrentFitness" />
+                <TextBlock Text="Best Solution:" />
+                <TextBox Name="BestSolution" TextWrapping="Wrap" IsReadOnly="True" Height="100" />
+            </StackPanel>
+        </Grid>
+</Window>

@@ -1,38 +1,48 @@
 ﻿using ClassLibNamespace;
-class Program
+
+namespace ConsoleApp
 {
-    static void Main(string[] args)
+    class Program
     {
-        var stopEvent = new ManualResetEvent(false);
-        Console.CancelKeyPress += (sender, e) =>
+        static void Main(string[] args)
         {
-            e.Cancel = true;
-            stopEvent.Set();
-        };
-        while (!stopEvent.WaitOne(0))
-        {
-            List<TournamentScheduler.Schedule> population = new List<TournamentScheduler.Schedule>();
-            for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
+            Enter.EnterParameters();
+            if (TournamentScheduler.CheckParameters())
             {
-                population.Add(TournamentScheduler.CreateRandomSchedule());
+                Console.WriteLine("Check the correctness of parameters. They must satisfy the inequasion: 1 ≤ R < N ≤ K");
+                return;
             }
-            for (int g = 0; g < TournamentScheduler.Generations; ++g)
+            var stopEvent = new ManualResetEvent(false);
+            Console.CancelKeyPress += (sender, e) =>
             {
-                population = TournamentScheduler.NextGeneration(population);
-                TournamentScheduler.Schedule bestSchedule = population.OrderByDescending(s => s.Fitness).First();//Take()
-                Console.WriteLine($"Generation {g + 1}: Best Fitness = {bestSchedule.Fitness}");
-                if (g == TournamentScheduler.Generations - 1)
+                e.Cancel = true;
+                stopEvent.Set();
+            };
+            while (!stopEvent.WaitOne(0))
+            {
+                List<TournamentScheduler.Schedule> population = new List<TournamentScheduler.Schedule>();
+                for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
                 {
-                    Console.WriteLine("Best schedule is found:");    
-                    for (int r = 0; r < TournamentScheduler.R; ++r)
+                    population.Add(TournamentScheduler.CreateRandomSchedule());
+                }
+                for (int g = 0; g < TournamentScheduler.Generations; ++g)
+                {
+                    population = TournamentScheduler.NextGeneration(population);
+                    TournamentScheduler.Schedule bestSchedule = population.OrderByDescending(s => s.Fitness).First();
+                    Console.WriteLine($"Generation {g + 1}: Best Fitness = {bestSchedule.Fitness}");
+                    if (g == TournamentScheduler.Generations - 1)
                     {
-                        for (int n = 0; n < TournamentScheduler.N; ++n)
+                        Console.WriteLine("Best schedule is found:");
+                        for (int r = 0; r < TournamentScheduler.R; ++r)
                         {
-                            Console.Write($"{bestSchedule.Matrix[r, n]} ");
+                            for (int n = 0; n < TournamentScheduler.N; ++n)
+                            {
+                                Console.Write($"{bestSchedule.Matrix[r, n], 2} ");
+                            }
+                            Console.WriteLine();
                         }
                         Console.WriteLine();
                     }
-                    Console.WriteLine();
                 }
             }
         }

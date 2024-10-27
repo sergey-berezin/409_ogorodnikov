@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 
 namespace ClassLibNamespace
 {
@@ -10,8 +8,8 @@ namespace ClassLibNamespace
         public static int R = 4;
         public static int N = 6;
         public static int K = 6;
-        public static int PopulationSize = 7;
-        public static int Generations = 7;
+        public static int PopulationSize = 20;
+        public static int Generations = 200;
         public static double MutationRate = 0.1;
         public class Schedule
         {
@@ -61,31 +59,55 @@ namespace ClassLibNamespace
                 Fitness = minOpponents * minOpponents + minLocations * minLocations;
             }
         }
+        public static bool CheckParameters()
+        {
+            if (N < 1 || R < 0 || K < 1)
+            {
+                if (N < 1)
+                {
+                    return true;
+                }
+                else if (R < 0)
+                {
+                    return true;
+                }
+                else return true;
+            }
+            if (N <= R)
+            {
+                return true;
+            }
+            if (K < N)
+            {
+                return true;
+            }
+            return false;
+        }
         public static Schedule CreateRandomSchedule()
         {
-            Schedule schedule= new Schedule();
-            for (int r = 0; r < R; ++r)
-            {
-                int [] freeLocations = Enumerable.Range(1, K).ToArray();
-                int [] unscheduled = Enumerable.Range(0, N).ToArray();
-                while (unscheduled.Length > 1)
+            Schedule schedule = new Schedule();
+            Parallel.For(0, R, r => 
                 {
-                    int randomLocation = rand.Next(freeLocations.Length);
-                    int randomPlayer = rand.Next(unscheduled.Length);
-                    schedule.Matrix[r, unscheduled[randomPlayer]] = freeLocations[randomLocation];
-                    unscheduled = unscheduled.Where((val, idx) => idx != randomPlayer).ToArray();
-                    randomPlayer = rand.Next(unscheduled.Length);
-                    schedule.Matrix[r, unscheduled[randomPlayer]] = freeLocations[randomLocation];
-                    unscheduled = unscheduled.Where((val, idx) => idx != randomPlayer ).ToArray();
-                    freeLocations = freeLocations.Where((val, idx) => idx != randomLocation).ToArray();
-                }
-                if (unscheduled.Length == 1)
-                {
-                    int randomLocation1 = rand.Next(freeLocations.Length);
-                    int randomPlayer1 = unscheduled[0];
-                    schedule.Matrix[r, randomPlayer1] = freeLocations[randomLocation1];
-                }
-            }
+                    int [] freeLocations = Enumerable.Range(1, K).ToArray();
+                    int [] unscheduled = Enumerable.Range(0, N).ToArray();
+                    while (unscheduled.Length > 1)
+                    {
+                        int randomLocation = rand.Next(freeLocations.Length);
+                        int randomPlayer = rand.Next(unscheduled.Length);
+                        schedule.Matrix[r, unscheduled[randomPlayer]] = freeLocations[randomLocation];
+                        unscheduled = unscheduled.Where((val, idx) => idx != randomPlayer).ToArray();
+                        randomPlayer = rand.Next(unscheduled.Length);
+                        schedule.Matrix[r, unscheduled[randomPlayer]] = freeLocations[randomLocation];
+                        unscheduled = unscheduled.Where((val, idx) => idx != randomPlayer ).ToArray();
+                        freeLocations = freeLocations.Where((val, idx) => idx != randomLocation).ToArray();
+                    }
+                    if (unscheduled.Length == 1)
+                    {
+                        int randomLocation1 = rand.Next(freeLocations.Length);
+                        int randomPlayer1 = unscheduled[0];
+                        schedule.Matrix[r, randomPlayer1] = freeLocations[randomLocation1];
+                    }
+                });
             schedule.CalculateFitness();
             return schedule;
         }
@@ -138,21 +160,30 @@ namespace ClassLibNamespace
         }
         public static List<Schedule> NextGeneration(List<Schedule> population)
         {
-            List<Schedule> newPopulation = new List<Schedule>();
-            for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
+            var tasks = new List<Task>();
+            ConcurrentBag<Schedule> newPopulation = new ConcurrentBag<Schedule>();
+            for (int i = 0; i < PopulationSize; ++i)
             {
-                Schedule schedule1 = SelectParent(population);
-                Schedule schedule2 = SelectParent(population);
-                Schedule newSchedule = Crossover(schedule1, schedule2);
-                Mutate(newSchedule); 
-                Mutate(schedule1);
-                Mutate(schedule2);
-                newPopulation.Add(newSchedule);
-                newPopulation.Add(schedule1);
-                newPopulation.Add(schedule2);    
+                tasks.Add(Task.Run(() =>
+                {
+                    Schedule schedule1 = SelectParent(population);
+                    Schedule schedule2 = SelectParent(population);
+                    Schedule newSchedule = Crossover(schedule1, schedule2);
+                    newPopulation.Add(newSchedule);
+                    newPopulation.Add(schedule1);
+                    newPopulation.Add(schedule2);
+                    Mutate(newSchedule); 
+                    Mutate(schedule1);
+                    Mutate(schedule2);
+                    newPopulation.Add(newSchedule);
+                    newPopulation.Add(schedule1);
+                    newPopulation.Add(schedule2);    
+                }));
             }
-            newPopulation = newPopulation.OrderByDescending(s => s.Fitness).Take(PopulationSize).ToList();
-            return newPopulation;
+            Task.WaitAll(tasks.ToArray());
+            List<Schedule> newPopulationList = new List<Schedule>(newPopulation);
+            newPopulationList = newPopulationList.OrderByDescending(s => s.Fitness).Take(PopulationSize).ToList();
+            return newPopulationList;
         }
     }
 }
