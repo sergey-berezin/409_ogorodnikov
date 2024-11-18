@@ -1,12 +1,12 @@
-﻿using ClassLibNamespace;
+﻿using TournamentSchedule;
 
 namespace ConsoleApp
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            Enter.EnterParameters();
+            Function.EnterParameters();
             if (TournamentScheduler.CheckParameters())
             {
                 Console.WriteLine("Check the correctness of parameters. They must satisfy the inequasion: 1 ≤ R < N ≤ K");
@@ -20,7 +20,7 @@ namespace ConsoleApp
             };
             while (!stopEvent.WaitOne(0))
             {
-                List<TournamentScheduler.Schedule> population = new List<TournamentScheduler.Schedule>();
+                var population = new List<TournamentScheduler.Schedule>();
                 for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
                 {
                     population.Add(TournamentScheduler.CreateRandomSchedule());
@@ -28,20 +28,11 @@ namespace ConsoleApp
                 for (int g = 0; g < TournamentScheduler.Generations; ++g)
                 {
                     population = TournamentScheduler.NextGeneration(population);
-                    TournamentScheduler.Schedule bestSchedule = population.OrderByDescending(s => s.Fitness).First();
+                    var bestSchedule = population.OrderByDescending(s => s.Fitness).First();
                     Console.WriteLine($"Generation {g + 1}: Best Fitness = {bestSchedule.Fitness}");
                     if (g == TournamentScheduler.Generations - 1)
                     {
-                        Console.WriteLine("Best schedule is found:");
-                        for (int r = 0; r < TournamentScheduler.R; ++r)
-                        {
-                            for (int n = 0; n < TournamentScheduler.N; ++n)
-                            {
-                                Console.Write($"{bestSchedule.Matrix[r, n], 2} ");
-                            }
-                            Console.WriteLine();
-                        }
-                        Console.WriteLine();
+                        Function.PrintScheduleMatrix(bestSchedule);
                     }
                 }
             }

@@ -1,5 +1,7 @@
 ﻿using System.Windows;
-using ClassLibNamespace;
+using System.Windows.Threading;
+using System.Xml.Linq;
+using TournamentSchedule;
 namespace WPF
 {
     /// <summary>
@@ -7,11 +9,27 @@ namespace WPF
     /// </summary>
     public partial class MainWindow : Window
     {
+        private CancellationTokenSource? _cancellationTokenSource;
+        private DispatcherTimer _timer;
+        private TournamentScheduler.Schedule? _bestSchedule;
+        private List<TournamentScheduler.Schedule>? _population;
         public MainWindow()
         {
             InitializeComponent();
+            _timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += Timer_Tick;
         }
-        private CancellationTokenSource _cancellationTokenSource;
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            if (_bestSchedule != null)
+            {
+                CurrentFitness.Text = $"Generation {_bestSchedule.CurrentGeneration}; Best Fitness = {_bestSchedule.Fitness}";
+                BestSolution.Text = FormatSchedule(_bestSchedule);
+            }
+        }
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
             int rounds = int.Parse(RoundsInput.Text);
@@ -27,47 +45,47 @@ namespace WPF
             StartButton.IsEnabled = false;
             StopButton.IsEnabled = true;
 
+            _population = new List<TournamentScheduler.Schedule>();
+            for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
+            {
+                _population.Add(TournamentScheduler.CreateRandomSchedule());
+            }
+
+            _timer.Start();
+
             try
             {
-                await RunAlgorithmAsync(_cancellationTokenSource.Token);
+                await Task.Run(() => RunAlgorithm(_cancellationTokenSource.Token));
             }
-            catch (OperationCanceledException)
-            {
+            catch (OperationCanceledException) {
                 MessageBox.Show("Algorithm was cancelled.");
-            }
-            finally
-            {
+            }   
+            finally {
                 StartButton.IsEnabled = true;
                 StopButton.IsEnabled = false;
+                _timer.Stop();
+                if (_bestSchedule != null)
+                {
+                    CurrentFitness.Text = $"Generation {_bestSchedule.CurrentGeneration}; Best Fitness = {_bestSchedule.Fitness}";
+                    BestSolution.Text = FormatSchedule(_bestSchedule);
+                }
             }
         }
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
             _cancellationTokenSource?.Cancel();
-        }
-        private async Task RunAlgorithmAsync(CancellationToken token)
-        {
-            List<TournamentScheduler.Schedule> population = new List<TournamentScheduler.Schedule>();
-            for (int i = 0; i < TournamentScheduler.PopulationSize; ++i)
-            {
-                population.Add(TournamentScheduler.CreateRandomSchedule());
-            }
-
+        } 
+        private void RunAlgorithm(CancellationToken token)
+        { 
             for (int g = 0; g < TournamentScheduler.Generations; ++g)
             {
                 token.ThrowIfCancellationRequested();
-                population = TournamentScheduler.NextGeneration(population);
-                var bestSchedule = population.OrderByDescending(s => s.Fitness).First();
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    CurrentFitness.Text = $"Generation {g + 1}: Best Fitness = {bestSchedule.Fitness}";
-                    BestSolution.Text = FormatSchedule(bestSchedule);
-                });
-
-                await Task.Delay(100);
+                _population = TournamentScheduler.NextGeneration(_population);
+                TournamentScheduler.SetGeneration(_population, g + 1);
+                _bestSchedule = _population.OrderByDescending(s => s.Fitness).First();
             }
-        }
-        private string FormatSchedule(TournamentScheduler.Schedule schedule)
+        } 
+        private static string FormatSchedule(TournamentScheduler.Schedule schedule)
         {
             string result = "";
             for (int r = 0; r < TournamentScheduler.R; ++r)
