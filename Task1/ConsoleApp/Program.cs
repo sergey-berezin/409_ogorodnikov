@@ -7,7 +7,7 @@ namespace ConsoleApp
         static void Main()
         {
             Function.EnterParameters();
-            if (TournamentScheduler.CheckParameters())
+            if (!TournamentScheduler.CheckParameters(TournamentScheduler.R, TournamentScheduler.N, TournamentScheduler.K))
             {
                 Console.WriteLine("Check the correctness of parameters. They must satisfy the inequasion: 1 ≤ R < N ≤ K");
                 return;
@@ -28,6 +28,7 @@ namespace ConsoleApp
                 for (int g = 0; g < TournamentScheduler.Generations; ++g)
                 {
                     population = TournamentScheduler.NextGeneration(population);
+                    TournamentScheduler.SetGeneration(population, g + 1);
                     var bestSchedule = population.OrderByDescending(s => s.Fitness).First();
                     Console.WriteLine($"Generation {g + 1}: Best Fitness = {bestSchedule.Fitness}");
                     if (g == TournamentScheduler.Generations - 1)
