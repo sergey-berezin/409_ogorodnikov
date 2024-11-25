@@ -24,7 +24,6 @@ namespace WPF
             var experiments = ExperimentManager.LoadExperiments();
             ExperimentList.ItemsSource = null;
             ExperimentList.ItemsSource = experiments;
-            //ExperimentList.ItemsSource = experiments;
         }
         private void Timer_Tick(object? sender, EventArgs e)
         {
@@ -120,7 +119,6 @@ namespace WPF
             experiments.Add(new Experiment { Name = experimentName, FileName = filename });
             ExperimentManager.SaveExperiments(experiments);
 
-            //ExperimentList.ItemsSource = experiments;
             ExperimentList.ItemsSource = null;
             ExperimentList.ItemsSource = experiments;
             MessageBox.Show("Experiment was saved successfuly.");
@@ -128,7 +126,7 @@ namespace WPF
         private void LoadExperiment_Click(object sender, RoutedEventArgs e)
         {
             var selectedExperiment = ExperimentList.SelectedItem as Experiment;
-            if (selectedExperiment != null)
+            if (selectedExperiment == null)
             {
                 MessageBox.Show("Select an experiment to load");
                 return;
@@ -138,8 +136,10 @@ namespace WPF
             int currentGeneration = _population.First().CurrentGeneration;
             TournamentScheduler.SetGeneration(_population, currentGeneration);
             CurrentFitness.Text = $"Generation {_bestSchedule.CurrentGeneration}; Best Fitness = {_bestSchedule.Fitness}";
+            TournamentScheduler.R = _population.First().Matrix.Length;
+            TournamentScheduler.N = _population.First().Matrix[0].Length;
             BestSolution.Text = FormatSchedule(_bestSchedule);
-            MessageBox.Show($"Experiment \"{selectedExperiment.Name}\" loaded successfully.");
+            MessageBox.Show($"Experiment \"{selectedExperiment.FileName}\" loaded successfully.");
         }
         private async void ContinueOptimization_Click(object sender, RoutedEventArgs e)
         {
