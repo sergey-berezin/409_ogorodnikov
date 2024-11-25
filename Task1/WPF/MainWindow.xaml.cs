@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 using System.Windows.Threading;
-using System.Xml.Linq;
 using TournamentSchedule;
 namespace WPF
 {
@@ -21,6 +20,10 @@ namespace WPF
                 Interval = TimeSpan.FromSeconds(1)
             };
             _timer.Tick += Timer_Tick;
+
+            var experiments = ExperimentManager.LoadExperiments();
+            ExperimentList.ItemsSource = null;
+            ExperimentList.ItemsSource = experiments;
         }
         private void Timer_Tick(object? sender, EventArgs e)
         {
@@ -35,11 +38,11 @@ namespace WPF
             int rounds = int.Parse(RoundsInput.Text);
             int participants = int.Parse(ParticipantsInput.Text);
             int locations = int.Parse(LocationsInput.Text);
-            
+
             TournamentScheduler.R = rounds;
             TournamentScheduler.N = participants;
             TournamentScheduler.K = locations;
-            
+
             _cancellationTokenSource = new CancellationTokenSource();
 
             StartButton.IsEnabled = false;
@@ -74,17 +77,17 @@ namespace WPF
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
             _cancellationTokenSource?.Cancel();
-        } 
+        }
         private void RunAlgorithm(CancellationToken token)
         { 
-            for (int g = 0; g < TournamentScheduler.Generations; ++g)
+            for (int g = _population.First().CurrentGeneration; g < TournamentScheduler.Generations; ++g)
             {
                 token.ThrowIfCancellationRequested();
                 _population = TournamentScheduler.NextGeneration(_population);
                 TournamentScheduler.SetGeneration(_population, g + 1);
                 _bestSchedule = _population.OrderByDescending(s => s.Fitness).First();
             }
-        } 
+        }
         private static string FormatSchedule(TournamentScheduler.Schedule schedule)
         {
             string result = "";
@@ -92,11 +95,86 @@ namespace WPF
             {
                 for (int n = 0; n < TournamentScheduler.N; ++n)
                 {
-                    result += $"{schedule.Matrix[r, n], 3} ";
+                    result += $"{schedule.Matrix[r][n], 3} ";
                 }
                 result += Environment.NewLine;
             }
             return result;
+        }
+        private void SaveExperiment_Click(object sender, RoutedEventArgs e)
+        {
+            if (_population == null || !_population.Any())
+            {
+                MessageBox.Show("No population to save");
+            }
+            var experimentName = ExperimentNameInput.Text;
+            if (string.IsNullOrWhiteSpace(experimentName))
+            {
+                MessageBox.Show("Enter a valid name");
+            }
+            var experiments = ExperimentManager.LoadExperiments();
+            var filename = $"experiment_{experiments.Count + 1}.json";
+
+            ExperimentManager.SavePopulation(filename, _population);
+            experiments.Add(new Experiment { Name = experimentName, FileName = filename });
+            ExperimentManager.SaveExperiments(experiments);
+
+            ExperimentList.ItemsSource = null;
+            ExperimentList.ItemsSource = experiments;
+            MessageBox.Show("Experiment was saved successfuly.");
+        }
+        private void LoadExperiment_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedExperiment = ExperimentList.SelectedItem as Experiment;
+            if (selectedExperiment == null)
+            {
+                MessageBox.Show("Select an experiment to load");
+                return;
+            }
+            _population = ExperimentManager.LoadPopulation(selectedExperiment.FileName);
+            _bestSchedule = _population.OrderByDescending(s => s.Fitness).First();
+            int currentGeneration = _population.First().CurrentGeneration;
+            TournamentScheduler.SetGeneration(_population, currentGeneration);
+            CurrentFitness.Text = $"Generation {_bestSchedule.CurrentGeneration}; Best Fitness = {_bestSchedule.Fitness}";
+            TournamentScheduler.R = _population.First().Matrix.Length;
+            TournamentScheduler.N = _population.First().Matrix[0].Length;
+            BestSolution.Text = FormatSchedule(_bestSchedule);
+            MessageBox.Show($"Experiment \"{selectedExperiment.FileName}\" loaded successfully.");
+        }
+        private async void ContinueOptimization_Click(object sender, RoutedEventArgs e)
+        {
+            if (_population == null || !_population.Any())
+            {
+                MessageBox.Show("No population loaded. Load an experiment first.");
+                return;
+            }
+
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            StartButton.IsEnabled = false;
+            StopButton.IsEnabled = true;
+
+            _timer.Start();
+
+            try
+            {
+                await Task.Run(() => RunAlgorithm(_cancellationTokenSource.Token));
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show("Optimization was cancelled.");
+            }
+            finally
+            {
+                StartButton.IsEnabled = true;
+                StopButton.IsEnabled = false;
+                _timer.Stop();
+                if (_bestSchedule != null)
+                {
+                    CurrentFitness.Text = $"Generation {_bestSchedule.CurrentGeneration}; Best Fitness = {_bestSchedule.Fitness}";
+                    BestSolution.Text = FormatSchedule(_bestSchedule);
+                }
+            }
         }
     }
 }

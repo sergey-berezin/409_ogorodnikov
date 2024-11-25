@@ -6,12 +6,12 @@ namespace ConsoleApp
     {
         public static void EnterParameters()
         {
-            Console.WriteLine("Enter number of rounds(R), participants(P) and locations(K)");
+            Console.WriteLine("Enter number of rounds(R), participants(N) and locations(K)");
             Console.Write("Rounds(R) = ");
             TournamentScheduler.R = Convert.ToInt32(Console.ReadLine());
-            Console.Write("Participants(P) = ");
+            Console.Write("Participants(N) = ");
             TournamentScheduler.N = Convert.ToInt32(Console.ReadLine());
-            Console.Write("Locations(L) = ");
+            Console.Write("Locations(K) = ");
             TournamentScheduler.K = Convert.ToInt32(Console.ReadLine());
         }
         public static void PrintScheduleMatrix(TournamentScheduler.Schedule schedule)
@@ -21,7 +21,7 @@ namespace ConsoleApp
             {
                 for (int n = 0; n < TournamentScheduler.N; ++n)
                 {
-                    Console.Write($"{schedule.Matrix[r, n], 2} ");
+                    Console.Write($"{schedule.Matrix[r][n], 2} ");
                 }
                 Console.WriteLine();
             }
