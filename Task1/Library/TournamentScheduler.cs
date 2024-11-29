@@ -5,18 +5,27 @@ namespace TournamentSchedule
     public class TournamentScheduler
     {
         public static Random rand = new();
-        public static int R = 4;
-        public static int N = 6;
-        public static int K = 6;
+        public static int R;
+        public static int N;
+        public static int K;
         public static int PopulationSize = 20;
-        public static int Generations = 200;
+        public static int Generations = 500;
         public static double MutationRate = 0.1;
         public class Schedule
         {
-            public int [,] Matrix = new int[R, N];
+            public int[][] Matrix { get; set; }
             public int Fitness { get; set; }
-            public int CurrentGeneration;
-
+            public int CurrentGeneration { get; set;}
+            public Schedule()
+            {
+                Matrix = new int[R][];
+                for (int r = 0; r < R; ++r)
+                {
+                    Matrix[r] = new int[N];
+                }
+                Fitness = 0;
+                CurrentGeneration = 0;
+            }
             public int UniqueOpponentsCount(int player)
             {
                 var opponents = new HashSet<int>();
@@ -35,7 +44,7 @@ namespace TournamentSchedule
                 var locations = new HashSet<int>();
                 for (int r = 0; r < R; ++r) 
                 {
-                    locations.Add(Matrix[r, player]);
+                    locations.Add(Matrix[r][player]);
                 }
                 return locations.Count;
             }
@@ -43,7 +52,7 @@ namespace TournamentSchedule
             {
                 for (int n = 0; n < N; n++)
                 {
-                    if ((n != player) && (Matrix[round, n] == Matrix[round, player])) 
+                    if ((n != player) && (Matrix[round][n] == Matrix[round][player])) 
                         return n;
                 }
                 return -1;
@@ -60,7 +69,7 @@ namespace TournamentSchedule
                 Fitness = minOpponents * minOpponents + minLocations * minLocations;
             }
         }
-        public static bool CheckParameters()
+        public static bool CheckParameters(int R, int N, int K)
         {
             return 1 <= R && R < N && N <= K;
         }
@@ -75,10 +84,10 @@ namespace TournamentSchedule
                 {
                     int randomLocation = rand.Next(freeLocations.Length);
                     int randomPlayer = rand.Next(unscheduled.Length);
-                    schedule.Matrix[r, unscheduled[randomPlayer]] = freeLocations[randomLocation];
+                    schedule.Matrix[r][unscheduled[randomPlayer]] = freeLocations[randomLocation];
                     unscheduled = unscheduled.Where((val, idx) => idx != randomPlayer).ToArray();
                     randomPlayer = rand.Next(unscheduled.Length);
-                    schedule.Matrix[r, unscheduled[randomPlayer]] = freeLocations[randomLocation];
+                    schedule.Matrix[r][unscheduled[randomPlayer]] = freeLocations[randomLocation];
                     unscheduled = unscheduled.Where((val, idx) => idx != randomPlayer ).ToArray();
                     freeLocations = freeLocations.Where((val, idx) => idx != randomLocation).ToArray();
                 } 
@@ -86,7 +95,7 @@ namespace TournamentSchedule
                 {
                     int randomLocation1 = rand.Next(freeLocations.Length);
                     int randomPlayer1 = unscheduled[0];
-                    schedule.Matrix[r, randomPlayer1] = freeLocations[randomLocation1];
+                    schedule.Matrix[r][randomPlayer1] = freeLocations[randomLocation1];
                 }
             });
             schedule.CalculateFitness();
@@ -112,14 +121,14 @@ namespace TournamentSchedule
                 {
                     for (int n = 0; n < N; ++n)
                     {
-                        newSchedule.Matrix[i, n] = schedule1.Matrix[i, n];
+                        newSchedule.Matrix[i][n] = schedule1.Matrix[i][n];
                     }
                 }
                 else
                 {
                     for (int n = 0; n < N; ++n)
                     {
-                        newSchedule.Matrix[i, n] = schedule2.Matrix[i, n];
+                        newSchedule.Matrix[i][n] = schedule2.Matrix[i][n];
                     }
                 }
             }
@@ -133,9 +142,9 @@ namespace TournamentSchedule
                 int n1 = rand.Next(1, N);
                 int n2 = rand.Next(1, N);
                 int r = rand.Next(1, R);
-                var tuple = new Tuple<int, int>(schedule0.Matrix[r, n1], schedule0.Matrix[r, n2]);
-                schedule0.Matrix[r, n1] = tuple.Item2;
-                schedule0.Matrix[r, n2] = tuple.Item1;
+                var tuple = new Tuple<int, int>(schedule0.Matrix[r][n1], schedule0.Matrix[r][n2]);
+                schedule0.Matrix[r][n1] = tuple.Item2;
+                schedule0.Matrix[r][n2] = tuple.Item1;
                 schedule0.CalculateFitness();
             }
         }
